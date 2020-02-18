@@ -1,0 +1,15 @@
+CURL_HOME = $(HOME)/Downloads/CURL
+CURL_INCDIR = -I$(CURL_HOME)/
+CURL_LIBDIR = -Wl,-rpath $(CURL_HOME)/lib/.libs -L$(CURL_HOME)/lib/.libs
+CURL_LIBFILE = $(CURL_HOME)/lib/.libs/libcurl.a
+CURL_LIB = -lcurl
+
+all:
+	#g++ HttpGetExam.cpp -o testHttpGet -lcurl
+	g++ -g $(CURL_INCDIR) $(CURL_LIBDIR) HttpPostExam.cpp -o testHttpPost -lcurl -lpthread
+
+get:
+	g++ HttpGetExam.cpp -o testHttpGet -lcurl
+
+post:
+	g++ HttpPostExam.cpp -o testHttpPost -lcurl -lpthread
