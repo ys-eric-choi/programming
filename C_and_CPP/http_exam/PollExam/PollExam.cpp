@@ -96,27 +96,41 @@ int main(void) {
 
 	int iSockFd = -1;
 
-	iSockFd = ConnectHttp("10.214.35.50", 5000, 700, 700);
+	iSockFd = ConnectHttp("127.0.0.1", 5000, 700, 700);
 
-	char msg[100];
+	char body[1024];
+	strcpy(body, "{\"TEST_MSG\": \"안녕하세요\"}");
+	
+	char msg[1024];
+	strcpy(msg, "POST /GPR HTTP/1.1\r\nHost: 127.0.0.1:5000\r\nAccept: */*\r\nContent-Type: application/json\r\nContent-Length: ");
+	sprintf(msg + strlen(msg), "%d\r\n\r\n", strlen(body));
+	strcat(msg, body);
 
 	if(send(iSockFd, msg, strlen(msg), 0) < 0) {
 		return 0;
 	}
-
+	
+	int k = 0, recv_len;
 	char b;
-	int recv_len;
-
+	char tmpBuff[2048];
+	char tmpBuff2[2048] = {'\0',};
+	tmpBuff[0] = '\0';
+	
 	while(1) {
-		if((recv_len = recv(iSockFd, &b, 1, 0)) > 0) {
-
+		if ((recv_len = recv(iSockFd, &b, 1, 0)) > 0) {
+			tmpBuff[k++] = b;
 		} else {
 			break;
 		}
 	}
-
+	tmpBuff[k] = '\0';
+	
+	char *c = NULL;
+	if((c = strstr(tmpBuff, "\n\r")) != NULL) {
+		fprintf(stderr, "Response: %s\n", c + 3);
+	}
+	
 	close(iSockFd);
-
 
 	return 0;
 }
