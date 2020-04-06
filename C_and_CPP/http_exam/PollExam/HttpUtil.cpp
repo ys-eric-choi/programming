@@ -23,13 +23,6 @@ const int CONNECT_FAILED	= -1;
 const int CONNECT_TIMEOUT	= -2;
 const int SEND_MESG_FAILED	= -3;
 
-const string ERR_MESG[] = { \
-	"Sucess", \
-	"[ERROR] Connect Failed", \
-	"[ERROR] Connect Timeout" \
-	"[ERROR] Send Message Failed" \
-};
-
 HttpUtil::HttpUtil() {
 
 }
