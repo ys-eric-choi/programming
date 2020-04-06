@@ -52,7 +52,6 @@ int ConnectWithTimeout(const char* strIP, int iPort, int iConnect_Timeout_MS, in
 	int iFlags, iStat = 0, iErrorNum = 0;
 	socklen_t iLen;
 
-	// Set Non-blocking
 	iFlags = fcntl(iSockFd, F_GETFL, 0);
 	if(fcntl(iSockFd, F_SETFL, iFlags | O_NONBLOCK) < 0) {
 		return CONNECT_FAILED;
@@ -100,15 +99,23 @@ CONNECT_DONE:
 	return iSockFd;
 }
 
-int SendDataByPost(int iSockFd, const string& strIP, int iPort, const string& strAPI, const string& strHeader, const string& strBody) {
-
+string MakeHttpHeader(const string& strIP, const int iPort, const string& strAPI, const string& strHeader) {
 	ostringstream oss;
 	oss.str(""); oss.clear(); // Initialize
 	oss << "POST " << strAPI << " HTTP/1.1\r\n";
 	oss << " Host: " << strIP << ":" << iPort << "\r\n";
 	oss << "Accept: */*\r\n";
 	oss << strHeader << "\r\n";
-	oss << "Content-Length: " << strBody.length() << "\r\n";
+	oss << "Content-Length: " ;
+
+	return oss.str();
+}
+
+int SendDataByPost(int iSockFd, const string& strHttpHeader, const string& strBody) {
+
+	ostringstream oss;
+	oss.str(""); oss.clear(); // Initialize
+	oss << strHttpHeader << strBody.length() << "\r\n";
 	oss << "\r\n" << strBody;
 
 	string strSendMesg = oss.str();
@@ -173,9 +180,11 @@ int main(void) {
 		return 0;
 	}
 
+	string strHttpHeader = MakeHttpHeader(strIP, iPort, strAPI, strHeader);
+
 	int iResult = -1;
 	string strBody = "{\"in\": \"HI\"}";
-	iResult = SendDataByPost(iSockFd, strIP, iPort, strAPI, strHeader, strBody);
+	iResult = SendDataByPost(iSockFd, strHttpHeader, strBody);
 
 	if(iResult < 0) {
 		cerr << ERR_MESG[(iResult * -1)] << endl;
