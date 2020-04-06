@@ -14,6 +14,7 @@
 using namespace std;
 
 const int NUM_POLL_FD		= 1;
+const int RECV_BUF_SIZE		= 1024;
 
 const int SEND_MESG_SUCCESS	= 0;
 const int CONNECT_FAILED	= -1;
@@ -21,15 +22,17 @@ const int CONNECT_TIMEOUT	= -2;
 const int SEND_MESG_FAILED	= -3;
 
 const string ERR_MESG[] = { \
-	"Connect Failed", \
-	"Connect Timeout" \
+	"Sucess", \
+	"[ERROR] Connect Failed", \
+	"[ERROR] Connect Timeout" \
+	"[ERROR] Send Message Failed" \
 };
 
 int ConnectWithTimeout(const char* strIP, int iPort, int iConnect_Timeout_MS, int iRecv_Timeout_MS) {
 
 	int iSockFd = -1;
 	if((iSockFd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		return CONNECT_FAIL;
+		return CONNECT_FAILED;
 	}
 
 	struct timeval tv;
@@ -52,12 +55,12 @@ int ConnectWithTimeout(const char* strIP, int iPort, int iConnect_Timeout_MS, in
 	// Set Non-blocking
 	iFlags = fcntl(iSockFd, F_GETFL, 0);
 	if(fcntl(iSockFd, F_SETFL, iFlags | O_NONBLOCK) < 0) {
-		return CONNECT_FAIL;
+		return CONNECT_FAILED;
 	}
 
 	if((iStat = connect(iSockFd, (struct sockaddr*)&addr, sizeof(addr))) < 0) {
 		if(errno != EINPROGRESS) {
-			return CONNECT_FAIL;
+			return CONNECT_FAILED;
 		}
 	}
 
@@ -71,16 +74,18 @@ int ConnectWithTimeout(const char* strIP, int iPort, int iConnect_Timeout_MS, in
 	iStat = poll(sockPoll, NUM_POLL_FD, iConnect_Timeout_MS);
 	
 	if(iStat < 0) {
-		return CONNECT_FAIL;
+		return CONNECT_FAILED;
 	} else if(iStat == 0) { // TIME-OUT
-		cerr << "Connet Time-out" << endl;
+#ifdef _HTTP_DEBUG
+		cerr << "Connet Timeout" << endl;
+#endif
 		return CONNECT_TIMEOUT;
 	}
 
 	if(sockPoll[0].revents & (POLLIN | POLLOUT)) {
 		iLen = sizeof(iErrorNum);
 		if((iStat = getsockopt(iSockFd, SOL_SOCKET, SO_ERROR, &iErrorNum, &iLen)) < 0) {
-			return CONNECT_FAIL;
+			return CONNECT_FAILED;
 		}
 	}
 
@@ -89,7 +94,7 @@ CONNECT_DONE:
 
 	if(iErrorNum) {
 		errno = iErrorNum;
-		return CONNECT_FAIL;
+		return CONNECT_FAILED;
 	}
 
 	return iSockFd;
@@ -106,13 +111,47 @@ int SendDataByPost(int iSockFd, const string& strIP, int iPort, const string& st
 	oss << "Content-Length: " << strBody.length() << "\r\n";
 	oss << "\r\n" << strBody;
 
-	string strMesg = oss.str();
-
-	if(send(iSockFd, strMesg.c_str(), strMesg.length(), 0) < 0) {
-		return SEND_MESG_FAIL;
+	string strSendMesg = oss.str();
+#ifdef _HTTP_DEBUG
+	cerr << "Send Message:\n" << strSendMesg << endl;
+#endif
+	if(send(iSockFd, strSendMesg.c_str(), strSendMesg.length(), 0) < 0) {
+		return SEND_MESG_FAILED;
 	}
 
-	return -1;
+	return SEND_MESG_SUCCESS;
+}
+
+string ReceiveData(int iSockFd, int iMaxRetry = 1) {
+	string strRecvMesg = "";
+	string strBodyMesg = "";
+
+	for(int iRecvLen = -1, iRetry = 0; (iRecvLen != 0) && (iRetry < iMaxRetry); ) {
+		char strRecvBuf[RECV_BUF_SIZE] = {"\0",};
+		iRecvLen = recv(iSockFd, strRecvBuf, RECV_BUF_SIZE - 1, 0);
+		if(iRecvLen < 0) {
+			iRetry++;
+		} else {
+			if(iRecvLen < RECV_BUF_SIZE) {
+				strRecvBuf[iRecvLen] = '\0';
+			}
+			strRecvMesg += strRecvBuf;
+			iRetry = 0;
+		}
+	}
+#ifdef _HTTP_DEBUG
+	cerr << "Receive Message:\n" << strRecvMesg << endl;
+#endif
+
+	char* strGetBody = NULL;
+	if((strGetBody = strstr((char*)strRecvMesg.c_str(), "\n\r")) != NULL) {
+#ifdef _HTTP_DEBUG
+		cerr << "Body: " << strGetBody + 3 << endl;
+#endif
+		strBodyMesg = strGetBody + 3;
+	}
+
+	return strBodyMesg;
 }
 
 int main(void) {
@@ -122,38 +161,31 @@ int main(void) {
 	string strAPI = "/get_data";
 	string strHeader = "Content-Type: application/json";
 
-	int iConnect_Timeout_MS = 500;
-	int iRecv_Timeout_MS = 500;
+	int iConnect_Timeout_MS = 2000;
+	int iRecv_Timeout_MS = 2000;
 
 	int iSockFd = -1;
 	iSockFd = ConnectWithTimeout(strIP.c_str(), iPort, iConnect_Timeout_MS, iRecv_Timeout_MS);
 
-	if(iSockFd < 0) return 0;
+	if(iSockFd < 0) {
+		cerr << ERR_MESG[(iSockFd * -1)] << endl;
+		close(iSockFd);
+		return 0;
+	}
 
 	int iResult = -1;
 	string strBody = "{\"in\": \"HI\"}";
 	iResult = SendDataByPost(iSockFd, strIP, iPort, strAPI, strHeader, strBody);
 
-	int k = 0, recv_len;
-	char b;
-	char tmpBuff[2048];
-	char tmpBuff2[2048] = {'\0',};
-	tmpBuff[0] = '\0';
-	
-	while(1) {
-		if ((recv_len = recv(iSockFd, &b, 1, 0)) > 0) {
-			tmpBuff[k++] = b;
-		} else {
-			break;
-		}
+	if(iResult < 0) {
+		cerr << ERR_MESG[(iResult * -1)] << endl;
+		close(iSockFd);
+		return 0;
 	}
-	tmpBuff[k] = '\0';
-	
-	char *c = NULL;
-	if((c = strstr(tmpBuff, "\n\r")) != NULL) {
-		fprintf(stderr, "Response: %s\n", c + 3);
-	}
-	
+
+	string strResponse = ReceiveData(iSockFd);
+	cerr << "Response: " << strResponse << endl;
+
 	close(iSockFd);
 
 	return 0;
