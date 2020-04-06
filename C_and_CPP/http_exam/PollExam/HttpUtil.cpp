@@ -105,7 +105,7 @@ string HttpUtil::MakeHttpHeader(const string& strIP, const int iPort, const stri
 	ostringstream oss;
 	oss.str(""); oss.clear(); // Initialize
 	oss << "POST " << strAPI << " HTTP/1.1\r\n";
-	oss << " Host: " << strIP << ":" << iPort << "\r\n";
+	oss << "Host: " << strIP << ":" << iPort << "\r\n";
 	oss << "Accept: */*\r\n";
 	oss << strHeader << "\r\n";
 	oss << "Content-Length: " ;
