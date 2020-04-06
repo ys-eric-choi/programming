@@ -1,4 +1,5 @@
 #include <iostream>
+#include <sstream>
 #include <string.h>
 
 #include <sys/socket.h>
@@ -14,15 +15,17 @@ using namespace std;
 
 const int NUM_POLL_FD		= 1;
 
-const int CONNECT_FAIL		= -1;
+const int SEND_MESG_SUCCESS	= 0;
+const int CONNECT_FAILED	= -1;
 const int CONNECT_TIMEOUT	= -2;
+const int SEND_MESG_FAILED	= -3;
 
 const string ERR_MESG[] = { \
 	"Connect Failed", \
 	"Connect Timeout" \
 };
 
-int ConnectHttp(const char* strIP, int iPort, int iConnect_Timeout_MS, int iRecv_Timeout_MS) {
+int ConnectWithTimeout(const char* strIP, int iPort, int iConnect_Timeout_MS, int iRecv_Timeout_MS) {
 
 	int iSockFd = -1;
 	if((iSockFd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -46,6 +49,7 @@ int ConnectHttp(const char* strIP, int iPort, int iConnect_Timeout_MS, int iRecv
 	int iFlags, iStat = 0, iErrorNum = 0;
 	socklen_t iLen;
 
+	// Set Non-blocking
 	iFlags = fcntl(iSockFd, F_GETFL, 0);
 	if(fcntl(iSockFd, F_SETFL, iFlags | O_NONBLOCK) < 0) {
 		return CONNECT_FAIL;
@@ -69,6 +73,7 @@ int ConnectHttp(const char* strIP, int iPort, int iConnect_Timeout_MS, int iRecv
 	if(iStat < 0) {
 		return CONNECT_FAIL;
 	} else if(iStat == 0) { // TIME-OUT
+		cerr << "Connet Time-out" << endl;
 		return CONNECT_TIMEOUT;
 	}
 
@@ -90,26 +95,45 @@ CONNECT_DONE:
 	return iSockFd;
 }
 
+int SendDataByPost(int iSockFd, const string& strIP, int iPort, const string& strAPI, const string& strHeader, const string& strBody) {
+
+	ostringstream oss;
+	oss.str(""); oss.clear(); // Initialize
+	oss << "POST " << strAPI << " HTTP/1.1\r\n";
+	oss << " Host: " << strIP << ":" << iPort << "\r\n";
+	oss << "Accept: */*\r\n";
+	oss << strHeader << "\r\n";
+	oss << "Content-Length: " << strBody.length() << "\r\n";
+	oss << "\r\n" << strBody;
+
+	string strMesg = oss.str();
+
+	if(send(iSockFd, strMesg.c_str(), strMesg.length(), 0) < 0) {
+		return SEND_MESG_FAIL;
+	}
+
+	return -1;
+}
+
 int main(void) {
 
-	cerr << ERR_MESG[1] << endl;
+	string strIP = "127.0.0.1";
+	int iPort = 5000;
+	string strAPI = "/get_data";
+	string strHeader = "Content-Type: application/json";
+
+	int iConnect_Timeout_MS = 500;
+	int iRecv_Timeout_MS = 500;
 
 	int iSockFd = -1;
+	iSockFd = ConnectWithTimeout(strIP.c_str(), iPort, iConnect_Timeout_MS, iRecv_Timeout_MS);
 
-	iSockFd = ConnectHttp("127.0.0.1", 5000, 700, 700);
+	if(iSockFd < 0) return 0;
 
-	char body[1024];
-	strcpy(body, "{\"TEST_MSG\": \"안녕하세요\"}");
-	
-	char msg[1024];
-	strcpy(msg, "POST /GPR HTTP/1.1\r\nHost: 127.0.0.1:5000\r\nAccept: */*\r\nContent-Type: application/json\r\nContent-Length: ");
-	sprintf(msg + strlen(msg), "%d\r\n\r\n", strlen(body));
-	strcat(msg, body);
+	int iResult = -1;
+	string strBody = "{\"in\": \"HI\"}";
+	iResult = SendDataByPost(iSockFd, strIP, iPort, strAPI, strHeader, strBody);
 
-	if(send(iSockFd, msg, strlen(msg), 0) < 0) {
-		return 0;
-	}
-	
 	int k = 0, recv_len;
 	char b;
 	char tmpBuff[2048];
