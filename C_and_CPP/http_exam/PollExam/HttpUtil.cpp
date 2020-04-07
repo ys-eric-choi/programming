@@ -121,6 +121,25 @@ int SendDataByPost(const int iSockFd, const string& strPath, const string& strHt
 	return HTTP_SUCCESS;
 }
 
+int SendDataByGet(const int iSockFd, const string& strPath, const string& strHttpHeader) {
+
+	ostringstream oss;
+	oss.str(""); oss.clear(); // Initialize
+
+	oss << "GET " << strPath << " HTTP/1.1\r\n";
+	oss << strHttpHeader << "\r\n";
+
+	string strSendMesg = oss.str();
+#ifdef _HTTP_DEBUG
+	cerr << "Send Message:\n" << strSendMesg << endl;
+#endif
+	if(send(iSockFd, strSendMesg.c_str(), strSendMesg.length(), 0) < 0) {
+		return SEND_MESG_FAILED;
+	}
+
+	return HTTP_SUCCESS;
+}
+
 string ReceiveData(const int iSockFd, int iMaxRetry) {
 	string strRecvMesg = "";
 	string strBodyMesg = "";

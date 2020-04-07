@@ -16,6 +16,7 @@ const int RECV_MESG_FAILED	= -104;
 int ConnectWithTimeout(const char* strIP, const int iPort, int iConnect_Timeout_MS, int iRecv_Timeout_MS);
 string MakeHttpHeader(const vector<string>& vecHeaders);
 int SendDataByPost(const int iSockFd, const string& strPath, const string& strHttpHeader, const string& strBody);
+int SendDataByGet(const int iSockFd, const string& strPath, const string& strHttpHeader);
 string ReceiveData(const int iSockFd, int iMaxRetry = 1);
 void CloseSocket(int iSockFd);
 string GetErrorMesg(int iErrorCode);
