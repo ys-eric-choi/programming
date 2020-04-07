@@ -1,6 +1,5 @@
 #include <iostream>
 #include <sstream>
-#include <string.h>
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -13,15 +12,10 @@
 
 #include "HttpUtil.h"
 
-using namespace std;
+namespace HTTPUTIL {
 
 const int NUM_POLL_FD		= 1;
 const int RECV_BUF_SIZE		= 1024;
-
-const int SEND_MESG_SUCCESS	= 0;
-const int CONNECT_FAILED	= -1;
-const int CONNECT_TIMEOUT	= -2;
-const int SEND_MESG_FAILED	= -3;
 
 int ConnectWithTimeout(const char* strIP, const int iPort, int iConnect_Timeout_MS, int iRecv_Timeout_MS) {
 
@@ -94,23 +88,26 @@ CONNECT_DONE:
 	return iSockFd;
 }
 
-string MakeHttpHeader(const string& strIP, const int iPort, const string& strAPI, const string& strHeader) {
+string MakeHttpHeader(const vector<string>& vecHeaders) {
 	ostringstream oss;
 	oss.str(""); oss.clear(); // Initialize
-	oss << "POST " << strAPI << " HTTP/1.1\r\n";
-	oss << "Host: " << strIP << ":" << iPort << "\r\n";
-	oss << "Accept: */*\r\n";
-	oss << strHeader << "\r\n";
-	oss << "Content-Length: " ;
+
+	int iSize = vecHeaders.size();
+	for(int i = 0; i < iSize; i++) {
+		oss << vecHeaders.at(i) << "\r\n";
+	}
 
 	return oss.str();
 }
 
-int SendDataByPost(const int iSockFd, const string& strHttpHeader, const string& strBody) {
+int SendDataByPost(const int iSockFd, const string& strPath, const string& strHttpHeader, const string& strBody) {
 
 	ostringstream oss;
 	oss.str(""); oss.clear(); // Initialize
-	oss << strHttpHeader << strBody.length() << "\r\n";
+
+	oss << "POST " << strPath << " HTTP/1.1\r\n";
+	oss << strHttpHeader;
+	oss << "Content-Length: " << strBody.length() << "\r\n";
 	oss << "\r\n" << strBody;
 
 	string strSendMesg = oss.str();
@@ -121,7 +118,7 @@ int SendDataByPost(const int iSockFd, const string& strHttpHeader, const string&
 		return SEND_MESG_FAILED;
 	}
 
-	return SEND_MESG_SUCCESS;
+	return HTTP_SUCCESS;
 }
 
 string ReceiveData(const int iSockFd, int iMaxRetry) {
@@ -168,7 +165,11 @@ string GetErrorMesg(int iErrorCode) {
 			return "[ERROR] Connect Timeout";
 		case SEND_MESG_FAILED:
 			return "[ERROR] Send Message Failed";
+		case RECV_MESG_FAILED:
+			return "[ERROR] Receive Message Failed";
 		default:
 			return "[ERROR] Unknow Error Occurred";
 	}
 }
+
+} // namespace HTTPUTIL
