@@ -23,7 +23,14 @@ const int CONNECT_FAILED	= -1;
 const int CONNECT_TIMEOUT	= -2;
 const int SEND_MESG_FAILED	= -3;
 
-int ConnectWithTimeout(const char* strIP, const int iPort, int iConnect_Timeout_MS, int iRecv_Timeout_MS) {
+HttpUtil::HttpUtil() {
+
+}
+
+HttpUtil::~HttpUtil() {
+}
+
+int HttpUtil::ConnectWithTimeout(const char* strIP, const int iPort, int iConnect_Timeout_MS, int iRecv_Timeout_MS) {
 
 	int iSockFd = -1;
 	if((iSockFd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -94,7 +101,7 @@ CONNECT_DONE:
 	return iSockFd;
 }
 
-string MakeHttpHeader(const string& strIP, const int iPort, const string& strAPI, const string& strHeader) {
+string HttpUtil::MakeHttpHeader(const string& strIP, const int iPort, const string& strAPI, const string& strHeader) {
 	ostringstream oss;
 	oss.str(""); oss.clear(); // Initialize
 	oss << "POST " << strAPI << " HTTP/1.1\r\n";
@@ -106,7 +113,7 @@ string MakeHttpHeader(const string& strIP, const int iPort, const string& strAPI
 	return oss.str();
 }
 
-int SendDataByPost(const int iSockFd, const string& strHttpHeader, const string& strBody) {
+int HttpUtil::SendDataByPost(const int iSockFd, const string& strHttpHeader, const string& strBody) {
 
 	ostringstream oss;
 	oss.str(""); oss.clear(); // Initialize
@@ -124,7 +131,7 @@ int SendDataByPost(const int iSockFd, const string& strHttpHeader, const string&
 	return SEND_MESG_SUCCESS;
 }
 
-string ReceiveData(const int iSockFd, int iMaxRetry) {
+string HttpUtil::ReceiveData(const int iSockFd, int iMaxRetry) {
 	string strRecvMesg = "";
 	string strBodyMesg = "";
 
@@ -156,11 +163,11 @@ string ReceiveData(const int iSockFd, int iMaxRetry) {
 	return strBodyMesg;
 }
 
-void CloseSocket(int iSockFd) {
+void HttpUtil::CloseSocket(int iSockFd) {
 	close(iSockFd);
 }
 
-string GetErrorMesg(int iErrorCode) {
+string HttpUtil::GetErrorMesg(int iErrorCode) {
 	switch(iErrorCode) {
 		case CONNECT_FAILED:
 			return "[ERROR] Connect Failed";
