@@ -10,15 +10,14 @@
 // 문자열 치환 함수, 첫 번째로 발견된 문자열만 치환
 // 반드시 함수 외부에서 DEST를 free 시킬 것!
 #define REPLACE(DEST, SRC, FIND, VALUE) { \
-    size_t iSrcLen = strlen(SRC); \
-    size_t iValueLen = strlen(VALUE); \
-    DEST = (char*)calloc((iSrcLen + iValueLen + 1), sizeof(char)); \
-    char *ptrFind = NULL; \
-    ptrFind = strstr(SRC, FIND) ; \
+    char *ptrFind = strstr(SRC, FIND) ; \
     if(ptrFind == NULL) { \
-        strcpy(DEST, SRC); \
+        DEST = strdup(SRC); \
     } else { \
+        size_t iSrcLen = strlen(SRC); \
+        size_t iValueLen = strlen(VALUE); \
         size_t iFindLen = strlen(ptrFind); \
+        DEST = (char*)calloc((iSrcLen - iFindLen + iValueLen + 1), sizeof(char)); \
         strncpy(DEST, SRC, iSrcLen - iFindLen); \
         strcat(DEST, VALUE); \
         strcat(DEST, ptrFind + strlen(FIND)); \
