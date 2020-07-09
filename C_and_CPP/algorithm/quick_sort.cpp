@@ -3,7 +3,7 @@
     Quick Sort 알고리즘 구현
     분할(Divide) & 정복(Conquer) 알고리즘
     최선의 경우: O(NlogN)
-    평균이 경우: O(NlogN)
+    평균의 경우: O(NlogN)
     최악의 경우: O(N^2)
         -> Array가 이미 정렬되어 있고
            Pivot을 처음 또는 마지막 값으로 사용하는 경우

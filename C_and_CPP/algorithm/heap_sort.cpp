@@ -10,14 +10,14 @@
                        1) 배열에서 부모 노드의 위치는 자식 노드의 N / 2에 위치
                        2) 배열에서 부모 노드의 왼쪽 자식 노드의 위치는 2N에 위치
                        3) 배열에서 부모 노드의 오른쪽 자식 노드의 위치는 2N + 1에 위치
-        2. 트리 내 모든 부모 - 자식 노드 관계에서
+        2. 트리 내 모든 부모-자식 노드 관계에서
             - 부모 노드의 값이 자식 노드의 값보다 커야 한다
                 -> 반대가 되면 MIN Heap Tree
     heapify에서 비교 횟수는 트리의 높이 = O(logN)
     N - 1번 수행 = O(N)
     따라서 전체 수행 시간은 다음과 같음
     최선의 경우: O(NlogN)
-    평균이 경우: O(NlogN)
+    평균의 경우: O(NlogN)
     최악의 경우: O(NlogN)
 */
 #include <iostream>
@@ -49,7 +49,7 @@ void heapify(int *arr, int current, int size) {
 
 // MAX Heap Tree 만들기
 void build_max_heap(int *arr, int size) {
-    // 전체 배열의 중간 지점부터 시작 -> 마지막 노드의 부모 노드부터 시작
+    // 전체 배열의 중간 지점부터 시작 = 마지막 노드의 부모 노드부터 시작한다는 의미
     int current = size / 2 - 1;
 
     for( ; current > -1; current--) {
