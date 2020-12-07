@@ -7,6 +7,8 @@ using namespace std;
 
 int main(void) {
 
+	HTTPUTIL::HttpResponse httpResponse;
+
 	int iConnect_Timeout_MS = 2000;
 	int iRecv_Timeout_MS = 2000;
 
@@ -21,8 +23,13 @@ int main(void) {
 	// GET
 	string strPath = "/get_data?A=1&B=2";
 
-	int iSockFd = -1;
-	iSockFd = HTTPUTIL::ConnectWithTimeout(strIP.c_str(), iPort, iConnect_Timeout_MS, iRecv_Timeout_MS);
+	int ir = -1, iSockFd = -1;
+	for(int i = 0; i < 3 && ir < 0; i++) {
+		ir = HTTPUTIL::ConnectWithTimeout(strIP.c_str(), iPort, iConnect_Timeout_MS, iRecv_Timeout_MS, iSockFd);
+		if(ir < 0) {
+			HTTPUTIL::CloseSocket(iSockFd);
+		}
+	}
 
 	if(iSockFd < 0) {
 		cerr << HTTPUTIL::GetErrorMesg(iSockFd) << endl;
@@ -41,8 +48,9 @@ int main(void) {
 		return 0;
 	}
 
-	string strResponse = HTTPUTIL::ReceiveData(iSockFd);
-	cerr << "Response: " << strResponse << endl;
+	int iErrCode = HTTPUTIL::ReceiveData(iSockFd, iRecv_Timeout_MS, httpResponse);
+
+	httpResponse.PrintResponse();
 
 	HTTPUTIL::CloseSocket(iSockFd);
 
@@ -52,8 +60,13 @@ int main(void) {
 	vecHeaders.push_back("Content-Type: application/json;");
 	strHttpHeader = HTTPUTIL::MakeHttpHeader(vecHeaders);
 
-	iSockFd = -1;
-	iSockFd = HTTPUTIL::ConnectWithTimeout(strIP.c_str(), iPort, iConnect_Timeout_MS, iRecv_Timeout_MS);
+	ir = -1, iSockFd = -1;
+	for(int i = 0; i < 3 && ir < 0; i++) {
+		ir = HTTPUTIL::ConnectWithTimeout(strIP.c_str(), iPort, iConnect_Timeout_MS, iRecv_Timeout_MS, iSockFd);
+		if(ir < 0) {
+			HTTPUTIL::CloseSocket(iSockFd);
+		}
+	}
 
 	if(iSockFd < 0) {
 		cerr << HTTPUTIL::GetErrorMesg(iSockFd) << endl;
@@ -72,8 +85,9 @@ int main(void) {
 		return 0;
 	}
 
-	strResponse = HTTPUTIL::ReceiveData(iSockFd);
-	cerr << "Response: " << strResponse << endl;
+	iErrCode = HTTPUTIL::ReceiveData(iSockFd, iRecv_Timeout_MS, httpResponse);
+
+	httpResponse.PrintResponse();
 
 	HTTPUTIL::CloseSocket(iSockFd);
 
